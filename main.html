@@ -1,0 +1,1122 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Ширма мастера</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Раскладка: слева сцена с моделью, справа вкладки с деталями, раскроем и параметрами. Чертёжный тёмный стол, акцент светится как контур дракона на фото. */
+:root {
+  --bg: #0f1413;
+  --surface: #171d1b;
+  --surface2: #1f2724;
+  --line: #2f3a36;
+  --fg: #e8e4da;
+  --muted: #9aa59f;
+  --accent: #ff9a5c;
+  --accent-ink: #1a0f08;
+  --felt: #0f6b5e;
+  --ply: #d9c08f;
+  --walnut: #6a4630;
+  --hinge: #c07a1d;
+  --view: #0b0f0e;
+  --grid: #26312d;
+  --good: #7fd19b;
+  --warn: #f2c14e;
+  --f-display: "Unbounded", "IBM Plex Sans", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eceeea; --surface: #f8f9f6; --surface2: #e3e7e2; --line: #c5cdc6;
+    --fg: #1a201e; --muted: #566159; --accent: #b93c06; --accent-ink: #fff6ef;
+    --felt: #0f6b5e; --ply: #d9c08f; --walnut: #6a4630; --hinge: #c07a1d;
+    --view: #dfe5e1; --grid: #c3ccc6; --good: #1f7a44; --warn: #8a5a00;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eceeea; --surface: #f8f9f6; --surface2: #e3e7e2; --line: #c5cdc6;
+  --fg: #1a201e; --muted: #566159; --accent: #b93c06; --accent-ink: #fff6ef;
+  --felt: #0f6b5e; --ply: #d9c08f; --walnut: #6a4630; --hinge: #c07a1d;
+  --view: #dfe5e1; --grid: #c3ccc6; --good: #1f7a44; --warn: #8a5a00;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 32px; }
+.kicker { margin: 0 0 6px; font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: clamp(28px, 4.4vw, 46px); line-height: 1.05; text-wrap: balance; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
+.facts div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.facts dt { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--f-mono); font-size: 16px; font-variant-numeric: tabular-nums; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.stage-col { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 16px; min-width: 0; }
+@media (max-width: 980px) { .stage-col { position: static; } }
+.stage { position: relative; height: min(72vh, 700px); min-height: 380px; background: var(--view); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+@media (max-width: 980px) { .stage { height: 62vh; min-height: 360px; } }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+.chips { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.chips > * { pointer-events: auto; }
+.chip {
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 88%, transparent); color: var(--fg);
+  padding: 5px 10px; border-radius: 999px; font-size: 13px; cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"], .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.hud {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px;
+  padding: 10px 12px; background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--line); border-radius: 6px;
+}
+@media (max-width: 760px) { .hud { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .hud { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+.ctl { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.ctl output { font-family: var(--f-mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+
+.pick { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; min-height: 76px; display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center; }
+.pick .nm { font-family: var(--f-display); font-weight: 500; font-size: 15px; }
+.pick .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.pick p { margin: 0; color: var(--muted); font-size: 13px; flex-basis: 100%; }
+.pick .empty { color: var(--muted); font-size: 13px; }
+.linkbtn { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+
+.side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; cursor: pointer; color: var(--muted); font-weight: 500; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.panel[hidden] { display: none !important; }
+.panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+h2 { margin: 6px 0 0; font-family: var(--f-display); font-weight: 500; font-size: 16px; }
+.note { margin: 0; color: var(--muted); font-size: 13px; max-width: 65ch; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-family: var(--f-mono); font-weight: 500; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.grp td { background: var(--surface2); font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+tr.row { cursor: pointer; }
+tr.row:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+tr.row.sel td { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.idx { font-family: var(--f-mono); color: var(--muted); width: 2.2em; }
+tfoot td { font-weight: 500; }
+
+.sums { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
+.sums div { display: flex; flex-direction: column; gap: 2px; }
+.sums dt { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.sums dd { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.row2 { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; color: var(--muted); }
+.field input[type="number"], .field select { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 110px; font-family: var(--f-mono); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { background: var(--surface); border: 0; padding: 6px 12px; cursor: pointer; font-family: var(--f-mono); border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.sheets { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.sheet { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sheet figcaption { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.sheet svg { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--line); }
+.sheet .p { fill: color-mix(in srgb, var(--ply) 55%, var(--surface)); stroke: var(--fg); stroke-width: 1; }
+.sheet .p.big { fill: color-mix(in srgb, var(--walnut) 55%, var(--surface)); }
+.sheet .p.hl { fill: var(--accent); }
+.sheet text { fill: var(--fg); font-family: var(--f-mono); }
+
+.warn { margin: 0; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 4px; color: var(--warn); font-size: 13px; }
+.q { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.q li { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.q b { display: block; font-weight: 600; margin-bottom: 2px; }
+.q span { color: var(--muted); font-size: 14px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 4px; font-size: 13px; z-index: 5; }
+textarea.out { width: 100%; min-height: 140px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px; font-family: var(--f-mono); font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="kicker">Фанера по толщинам · накладные петли</p>
+      <h1>Ширма мастера</h1>
+    </div>
+    <dl class="facts" id="facts"></dl>
+  </header>
+
+  <main class="grid">
+    <section class="stage-col" aria-label="Трёхмерная модель">
+      <div class="stage" id="stage">
+        <canvas id="cv" aria-label="Модель ширмы. Тяните, чтобы повернуть, колесо или щипок меняет масштаб."></canvas>
+        <div class="chips" id="chips">
+          <button class="chip" type="button" data-pose="closed">Закрыто</button>
+          <button class="chip" type="button" data-pose="screen">Ширма</button>
+          <button class="chip" type="button" data-pose="flat">Развёрнуто</button>
+          <button class="chip" type="button" data-cam="front">Спереди</button>
+          <button class="chip" type="button" data-cam="top">Сверху</button>
+          <button class="chip" type="button" data-cam="back">Со стороны игроков</button>
+          <button class="chip" type="button" id="feltBtn" aria-pressed="true">Войлок</button>
+        </div>
+        <div class="hud">
+          <div class="ctl"><label for="wall">Стенки <output id="wallO"></output></label><input id="wall" type="range" min="0" max="90" step="1" value="90"></div>
+          <div class="ctl"><label for="angle">Створки <output id="angleO"></output></label><input id="angle" type="range" min="0" max="180" step="1" value="110"></div>
+          <div class="ctl"><label for="explode">Разнести детали <output id="explodeO"></output></label><input id="explode" type="range" min="0" max="100" step="1" value="0"></div>
+          <div class="ctl"><label for="open">Ящики <output id="openO"></output></label><input id="open" type="range" min="0" max="100" step="1" value="0"></div>
+        </div>
+      </div>
+      <div class="pick" id="pick" aria-live="polite"></div>
+    </section>
+
+    <section class="side">
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab" role="tab" type="button" data-tab="parts" aria-selected="true">Детали</button>
+        <button class="tab" role="tab" type="button" data-tab="cut" aria-selected="false">Раскрой</button>
+        <button class="tab" role="tab" type="button" data-tab="params" aria-selected="false">Параметры</button>
+        <button class="tab" role="tab" type="button" data-tab="ask" aria-selected="false">Вопросы</button>
+      </div>
+
+      <div class="panel" id="p-parts" role="tabpanel">
+        <p class="note">Нажмите на строку или на деталь в модели, чтобы подсветить её. Все размеры в миллиметрах, порядок: длина × ширина.</p>
+        <div class="tablewrap"><table id="partsTable"></table></div>
+        <dl class="sums" id="sums"></dl>
+        <div class="row2"><button class="chip" type="button" id="copyBtn">Скопировать список</button></div>
+        <textarea class="out" id="copyOut" hidden readonly aria-label="Список деталей"></textarea>
+      </div>
+
+      <div class="panel" id="p-cut" role="tabpanel" hidden>
+        <p class="note">Детали разложены по листам рядами. Фанера 6 мм и 4 мм режется отдельно. Номер на детали совпадает с номером в таблице.</p>
+        <div class="row2">
+          <div class="field"><label for="sheetPreset">Размер листа</label>
+            <select id="sheetPreset">
+              <option value="600x400">600 × 400</option>
+              <option value="900x600">900 × 600</option>
+              <option value="1220x610">1220 × 610</option>
+              <option value="1525x1525">1525 × 1525</option>
+              <option value="custom">Свой размер</option>
+            </select></div>
+          <div class="field"><label for="sheetW">Ширина</label><input id="sheetW" type="number" min="100" max="3000" step="1"></div>
+          <div class="field"><label for="sheetH">Высота</label><input id="sheetH" type="number" min="100" max="3000" step="1"></div>
+          <div class="field"><label for="gapIn">Зазор реза</label><input id="gapIn" type="number" min="0" max="10" step="0.5"></div>
+        </div>
+        <dl class="sums" id="cutSums"></dl>
+        <div id="cutOut" style="display:flex;flex-direction:column;gap:18px"></div>
+      </div>
+
+      <div class="panel" id="p-params" role="tabpanel" hidden>
+        <p class="note">Размеры основания 442 × 320, откидной стенки 80 и створки 220 × 320 взяты из вашей развёртки. Здесь меняется всё остальное.</p>
+
+        <h2>Фанера</h2>
+        <div class="row2">
+          <div class="field"><label>Основа, мм</label><div class="seg" id="segT"><button type="button" data-v="4">4</button><button type="button" data-v="6">6</button><button type="button" data-v="8">8</button></div></div>
+          <div class="field"><label>Стенки центра, мм</label><div class="seg" id="segTc"><button type="button" data-v="4">4</button><button type="button" data-v="6">6</button></div></div>
+          <div class="field"><label>Перегородки, мм</label><div class="seg" id="segt"><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div></div>
+        </div>
+        <div class="ctl"><label for="recess">Борта верх и низ сдвинуты к центру <output id="recessO"></output></label><input id="recess" type="range" min="0" max="30" step="1"></div>
+        <div class="ctl"><label for="tail">Хвост нижнего борта сзади, без паза <output id="tailO"></output></label><input id="tail" type="range" min="5" max="25" step="1"></div>
+
+        <h2>Отсеки</h2>
+        <div class="ctl"><label for="lw">Ширина левой колонки <output id="lwO"></output></label><input id="lw" type="range" min="100" max="260" step="1"></div>
+        <div class="ctl"><label for="topH">Высота верхней левой ячейки <output id="topHO"></output></label><input id="topH" type="range" min="60" max="190" step="1"></div>
+
+        <h2>Ящики</h2>
+        <div class="row2">
+          <div class="field"><label>Количество</label><div class="seg" id="segN"><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div></div>
+          <div class="field"><label>Дно, мм</label><div class="seg" id="segTb"><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button></div></div>
+          <div class="field"><label>Стенки, мм</label><div class="seg" id="segTw"><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button></div></div>
+          <div class="field"><label>Фасад, мм</label><div class="seg" id="segFt"><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="6">6</button></div></div>
+        </div>
+        <div class="ctl"><label for="boxH">Высота ящика <output id="boxHO"></output></label><input id="boxH" type="range" min="30" max="90" step="1"></div>
+        <div class="ctl"><label for="boxD">Глубина ящика <output id="boxDO"></output></label><input id="boxD" type="range" min="30" max="66" step="1"></div>
+        <div class="ctl"><label for="fg">Зазор фасада с каждой стороны <output id="fgO"></output></label><input id="fg" type="range" min="0.5" max="3" step="0.5"></div>
+        <div class="ctl"><label for="notchR">Вырез под палец, радиус <output id="notchRO"></output></label><input id="notchR" type="range" min="0" max="15" step="1"></div>
+        <div class="ctl"><label for="sideClear">Запас по ширине слота (всего) <output id="sideClearO"></output></label><input id="sideClear" type="range" min="6" max="30" step="1"></div>
+
+        <h2>Петли</h2>
+        <div class="row2">
+          <div class="field"><label>На каждый стык</label><div class="seg" id="segHn"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button></div></div>
+        </div>
+        <div class="ctl"><label for="hw">Ширина петли в раскрытом виде <output id="hwO"></output></label><input id="hw" type="range" min="16" max="40" step="1"></div>
+        <div class="ctl"><label for="hl">Длина петли <output id="hlO"></output></label><input id="hl" type="range" min="25" max="100" step="1"></div>
+
+        <dl class="sums" id="derived"></dl>
+        <div id="warns"></div>
+        <div class="row2"><button class="chip" type="button" id="resetBtn">Вернуть значения по умолчанию</button></div>
+      </div>
+
+      <div class="panel" id="p-ask" role="tabpanel" hidden>
+        <p class="note">Модель собрана на допущениях. Ответы на эти вопросы изменят размеры деталей.</p>
+        <ul class="q">
+          <li><b>Откидная стенка стоит снаружи стенки центра?</b><span>Я поставил так: стенка центра внутри, откидная на краю основания. Внутренняя ширина из-за этого 418 мм вместо 430.</span></li>
+          <li><b>Длина накладной петли?</b><span>Вы назвали ширину 25 мм. Длину взял 50 мм, по две петли на стык. Если нужна другая, меняется на вкладке «Параметры».</span></li>
+          <li><b>Хвост борта 10 мм подходит?</b><span>Нижний борт идёт на полную глубину, но пазы под перегородки открыты спереди и оставляют сзади хвост. На хвосте борт держится целым, перегородки входят в пазы ножками до низа основания.</span></li>
+          <li><b>Размер листа фанеры и станок?</b><span>Раскрой считается на лист 600 × 400. Можно выбрать другой на вкладке «Раскрой».</span></li>
+          <li><b>Створки фиксируются в раскрытом виде?</b><span>Сейчас это просто угол. Можно добавить магниты в торцах или упорные планки.</span></li>
+          <li><b>Соединение деталей: клей или шип в паз?</b><span>Пазы под перегородки сделают раскрой точнее, но изменят размеры деталей на толщину шипа.</span></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* Геометрия и список деталей. Единицы: мм. Без зависимостей, проверяется в node. */
+const Model = (function () {
+  const DEFAULTS = {
+    T: 6,        // основа: основание, откидные стенки, створки, борта
+    t: 4,        // перегородки
+    Tc: 6,       // собственные боковые стенки центра
+    W: 442,      // ширина основания (по схеме)
+    H: 320,      // высота основания и створок
+    D: 80,       // глубина откидной стенки
+    wing: 220,   // ширина створки
+    gapH: 6,     // зазор между листами в развёртке (под петлю)
+    recess: 10,  // на сколько борт верх и низ сдвинут к центру по высоте
+    tail: 10,    // хвост нижнего борта у задней кромки, где нет паза
+    lw: 178,     // ширина левой колонки
+    topH: 127,   // высота верхней левой ячейки
+    // ящики
+    n: 3,
+    boxH: 54,    // высота короба ящика
+    boxD: 51,    // глубина короба
+    tb: 4,       // дно
+    tw: 4,       // стенки короба
+    ft: 4,       // фасад
+    fg: 1,       // зазор фасада с каждой стороны
+    notchR: 8,   // радиус выреза под палец, 0 без выреза
+    sideClear: 17, // запас по ширине слота (всего)
+    // петли
+    hw: 25,      // ширина петли в раскрытом виде
+    hl: 50,      // длина петли вдоль оси
+    hn: 2,       // петель на каждый стык
+    // лист
+    sheetW: 600,
+    sheetH: 400,
+    gap: 2
+  };
+  const PAD = 9; // запас по высоте проёма над коробом
+
+  function derive(p) {
+    const rimH = p.D - 4;
+    const iw = p.W - 2 * (p.T + p.Tc);
+    const ih = p.H - 2 * (p.T + p.recess);
+    const id = rimH - p.T;
+    const yIn0 = p.T + p.recess;            // верх нижнего борта
+    const yIn1 = p.H - p.T - p.recess;      // низ верхнего борта
+    const slotD = id - p.tail;              // глубина паза в борту
+    const dh = p.boxH + PAD;
+    const dw = Math.floor((iw - (p.n - 1) * p.t) / p.n);
+    const slack = iw - (p.n - 1) * p.t - p.n * dw;
+    const uh = ih - dh - p.t;
+    const rw = iw - p.lw - p.t;
+    const botH = uh - p.topH - p.t;
+    const boxW = dw - p.sideClear;
+    const facW = dw - 2 * p.fg;
+    const facH = dh - 2 * p.fg;
+    const unfolded = 2 * p.wing + 2 * p.D + p.W + 4 * p.gapH;
+    const warn = [];
+    if (botH < 30) warn.push('Нижняя левая ячейка ниже 30 мм. Уменьшите верхнюю ячейку.');
+    if (rw < 60) warn.push('Правая колонка уже 60 мм. Уменьшите левую колонку.');
+    if (p.boxD + p.ft > id) warn.push('Ящик глубже проёма: глубина ' + p.boxD + ' и фасад ' + p.ft + ' мм не помещаются в ' + id + ' мм.');
+    if (boxW < 40) warn.push('Ящик уже 40 мм. Уменьшите количество ящиков или зазор по бокам.');
+    if (boxW - 2 * p.tw < 10) warn.push('Стенки ящика не оставляют места внутри.');
+    if (p.boxH - p.tb < 15) warn.push('Ящик слишком низкий для выбранного дна.');
+    if (p.notchR * 2 > facW - 10) warn.push('Вырез под палец шире фасада.');
+    if (p.notchR > facH / 2) warn.push('Вырез под палец выше половины фасада.');
+    if (p.tail < 5) warn.push('Хвост борта тоньше 5 мм, он сломается. Увеличьте хвост.');
+    if (slotD < 30) warn.push('Паз в борту короче 30 мм. Уменьшите хвост.');
+    if (uh < 80) warn.push('Верхние ячейки ниже 80 мм. Уменьшите подъём борта или высоту ящика.');
+    if (p.hl * p.hn > p.H - 40) warn.push('Петли не помещаются по высоте.');
+    if (p.hw > 2 * p.T + 16 && p.hw > p.D) warn.push('Петля шире стенки.');
+    const pH = p.recess + p.T + dh;
+    return { rimH, iw, ih, id, yIn0, yIn1, slotD, pH, dh, dw, slack, uh, rw, botH, boxW, facW, facH, unfolded, warn };
+  }
+
+  function buildParts(p) {
+    const d = derive(p);
+    const L = [];
+    const add = (key, name, group, w, h, th, qty, note) =>
+      L.push({ key, name, group, w, h, th, qty, note: note || '' });
+
+    add('base', 'Основание', 'Корпус', p.W, p.H, p.T, 1,
+      'Лежит на спине ширмы. Внутри войлок.');
+    add('cwall', 'Боковая стенка центра', 'Корпус', d.id, p.H, p.Tc, 2,
+      'Своя стенка центрального листа. Стоит на основании внутри откидной стенки.');
+    add('rimT', 'Борт верх', 'Корпус', d.iw, d.id, p.T, 1,
+      'Сдвинут к центру на ' + p.recess + ' мм от верхней кромки. Стоит на основании между стенками центра.');
+    add('rimB', 'Борт низ с пазами', 'Корпус', d.iw, d.id, p.T, 1,
+      'Поднят на ' + p.recess + ' мм от нижней кромки. ' + (p.n - 1) + ' паза шириной ' + p.t + ' мм и глубиной ' + d.slotD +
+      ' мм от передней кромки, сзади остаётся хвост ' + p.tail + ' мм. На нём стоят ящики.');
+    add('swall', 'Откидная стенка', 'Створки', p.D, p.H, p.T, 2,
+      'На петлях к основанию. Закрытая стоит на краю основания, открытая ложится в плоскость.');
+    add('wing', 'Створка', 'Створки', p.wing, p.H, p.T, 2,
+      'На петлях к откидной стенке. Две створки встречаются посередине, зазор ' + (p.W - 2 * p.wing) + ' мм.');
+
+    add('shelfD', 'Полка над ящиками', 'Перегородки', d.iw, d.id, p.t, 1);
+    if (p.n > 1) add('divD', 'Перегородка ящиков с ножкой', 'Перегородки', d.pH, d.id, p.t, p.n - 1,
+      'Ножка опускается до низа основания. Вырез сзади ' + p.tail + ' × ' + p.T + ' мм на высоте ' + p.recess + ' мм от низа, в него входит хвост борта.');
+    add('divC', 'Перегородка колонки', 'Перегородки', d.uh, d.id, p.t, 1);
+    add('shelfL', 'Полка левой колонки', 'Перегородки', p.lw, d.id, p.t, 1);
+
+    const g = 'Ящики (' + p.n + ' шт.)';
+    add('facade', 'Фасад ящика', g, d.facW, d.facH, p.ft, p.n,
+      'Зазор по ' + p.fg + ' мм с каждой стороны.' + (p.notchR ? ' Вырез под палец радиусом ' + p.notchR + ' мм сверху.' : ''));
+    add('dbottom', 'Дно ящика', g, d.boxW, p.boxD, p.tb, p.n);
+    add('dside', 'Бок ящика', g, p.boxD, p.boxH - p.tb, p.tw, 2 * p.n);
+    add('dback', 'Задняя стенка ящика', g, d.boxW - 2 * p.tw, p.boxH - p.tb, p.tw, p.n);
+    add('dfront', 'Передняя стенка ящика', g, d.boxW - 2 * p.tw, p.boxH - p.tb, p.tw, p.n,
+      'Приклеивается за фасадом.');
+
+    add('hinge', 'Накладная петля', 'Фурнитура', p.hw, p.hl, 0, 4 * p.hn,
+      p.hn + ' петли на каждый из 4 стыков: основание с откидной стенкой и стенка со створкой, слева и справа. Ширина в раскрытом виде ' + p.hw + ' мм.');
+
+    L.forEach((x, i) => { x.n = i + 1; x.area = x.w * x.h * x.qty / 1e6; });
+    return L;
+  }
+
+  function packGroup(items, SW, SH, gap) {
+    const sheets = [];
+    const unplaced = [];
+    items = items.slice().sort((a, b) =>
+      Math.max(b.w, b.h) - Math.max(a.w, a.h) || b.w * b.h - a.w * a.h);
+
+    function put(s, it, x, y, w, h, rot) {
+      s.items.push({ key: it.key, n: it.n, name: it.name, x, y, w, h, rot });
+    }
+    function place(s, it) {
+      const ors = [[it.w, it.h, false], [it.h, it.w, true]];
+      for (const r of s.rows) {
+        for (const o of ors) {
+          if (o[1] <= r.h && r.x + o[0] <= SW) {
+            put(s, it, r.x, r.y, o[0], o[1], o[2]);
+            r.x += o[0] + gap;
+            return true;
+          }
+        }
+      }
+      let best = null;
+      for (const o of ors) {
+        if (o[0] <= SW && s.used + o[1] <= SH && (!best || o[1] < best[1])) best = o;
+      }
+      if (!best) return false;
+      const r = { x: best[0] + gap, y: s.used, h: best[1] };
+      s.rows.push(r);
+      put(s, it, 0, s.used, best[0], best[1], best[2]);
+      s.used += best[1] + gap;
+      return true;
+    }
+    for (const it of items) {
+      let ok = false;
+      for (const s of sheets) { if (place(s, it)) { ok = true; break; } }
+      if (!ok) {
+        const s = { rows: [], used: 0, items: [] };
+        sheets.push(s);
+        if (!place(s, it)) { sheets.pop(); unplaced.push(it); }
+      }
+    }
+    sheets.forEach(s => {
+      s.fill = s.items.reduce((a, i) => a + i.w * i.h, 0) / (SW * SH);
+    });
+    return { sheets, unplaced };
+  }
+
+  /* Раскрой по толщинам. Возвращает массив групп по убыванию толщины. */
+  function pack(parts, p) {
+    const ths = Array.from(new Set(parts.filter(x => x.th > 0).map(x => x.th))).sort((a, b) => b - a);
+    return ths.map(th => {
+      const items = [];
+      parts.filter(x => x.th === th).forEach(x => {
+        for (let i = 0; i < x.qty; i++) items.push({ key: x.key, n: x.n, name: x.name, w: x.w, h: x.h });
+      });
+      const g = packGroup(items, p.sheetW, p.sheetH, p.gap);
+      g.th = th;
+      return g;
+    });
+  }
+
+  return { DEFAULTS, PAD, derive, buildParts, pack };
+})();
+
+if (typeof module !== 'undefined') module.exports = Model;
+
+</script>
+<script>
+/* Трёхмерная сцена на three.js. Оси: x вправо, y вверх, z к зрителю. Основание лежит в плоскости z = 0. */
+window.Scene3D = (function () {
+  let renderer, scene, camera, root, ground, canvas, stage;
+  let meshes = [], movers = [], sides = [], feltMesh;
+  let dirty = true, selKey = null, onPick = function () {};
+  const view = { theta: 0.55, phi: 1.22, dist: 1150, target: new THREE.Vector3(0, 150, 40) };
+  const goal = { theta: 0.55, phi: 1.22, dist: 1150 };
+  const pose = { angle: 110, wall: 90, explode: 0, open: 0, felt: true };
+  let P = null, D = null;
+
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888888'; }
+  function colors() {
+    return {
+      ply: css('--ply'), walnut: css('--walnut'), felt: css('--felt'), hinge: css('--hinge'),
+      view: css('--view'), grid: css('--grid'), accent: css('--accent'), fg: css('--fg')
+    };
+  }
+
+  function mat(hex) { return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.85, metalness: 0 }); }
+
+  function box(key, w, h, d, hexOrArr, x, y, z, parent, track) {
+    const g = new THREE.BoxGeometry(w, h, d);
+    const mats = Array.isArray(hexOrArr) ? hexOrArr.map(mat) : [mat(hexOrArr)];
+    const m = new THREE.Mesh(g, mats.length === 1 ? mats[0] : mats);
+    m.position.set(x, y, z);
+    const eMat = new THREE.LineBasicMaterial({ color: new THREE.Color(css('--fg')), transparent: true, opacity: 0.35 });
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), eMat);
+    m.add(e);
+    m.userData = { key: key, mats: mats, edge: eMat };
+    meshes.push(m);
+    (parent || root).add(m);
+    if (track) { m.userData.base = m.position.clone(); }
+    return m;
+  }
+
+  function mover(obj, ex, extra) {
+    obj.userData.base = obj.position.clone();
+    obj.userData.ex = ex;
+    obj.userData.extra = extra || null;
+    movers.push(obj);
+    return obj;
+  }
+
+  function clear() {
+    if (root) {
+      scene.remove(root);
+      root.traverse(function (o) {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(function (m) { m.dispose(); });
+      });
+    }
+    meshes = []; movers = []; sides = [];
+  }
+
+  function cyl(key, r, h, hex, x, y, z, parent) {
+    const g = new THREE.CylinderGeometry(r, r, h, 14);
+    const m = new THREE.Mesh(g, mat(hex));
+    m.position.set(x, y, z);
+    m.userData = { key: key, mats: [m.material], edge: null };
+    meshes.push(m);
+    (parent || root).add(m);
+    return m;
+  }
+
+  function build(p, d) {
+    P = p; D = d;
+    const c = colors();
+    clear();
+    root = new THREE.Group();
+    scene.add(root);
+    scene.background = new THREE.Color(c.view);
+    if (ground) { scene.remove(ground); ground.geometry.dispose(); }
+    ground = new THREE.GridHelper(2400, 48, new THREE.Color(c.grid), new THREE.Color(c.grid));
+    ground.position.y = -0.2;
+    scene.add(ground);
+
+    const T = p.T, t = p.t, Tc = p.Tc, W = p.W, H = p.H, Dd = p.D;
+    const iw = d.iw, id = d.id;
+    const V = THREE.Vector3;
+    const metal = '#aab2b8';
+
+    // основание
+    mover(box('base', W, H, T, c.ply, 0, H / 2, T / 2), new V(0, 0, -90));
+
+    // собственные стенки центра: внутри откидной стенки
+    [-1, 1].forEach(function (s) {
+      const w = box('cwall', Tc, H, id, c.ply, s * (W / 2 - T - Tc / 2), H / 2, T + id / 2);
+      mover(w, new V(s * 40, 0, 0));
+    });
+
+    // борты верх и низ сдвинуты к центру по высоте
+    const rec = p.recess;
+    const y0 = d.yIn0, y1 = d.yIn1;
+    mover(box('rimT', iw, T, id, c.ply, 0, y1 + T / 2, T + id / 2), new V(0, 80, 0));
+    // нижний борт: хвост у задней кромки и зубцы между пазами
+    const x0 = -iw / 2 + d.slack / 2;
+    const slotX = [];
+    for (let i = 1; i < p.n; i++) slotX.push(x0 + i * d.dw + (i - 1) * t + t / 2);
+    (function () {
+      const yb = rec + T / 2;
+      const zt = T + id - p.tail / 2;           // центр хвоста
+      mover(box('rimB', iw, T, p.tail, c.ply, 0, yb, zt), new V(0, -80, 0));
+      const zf = T + d.slotD / 2;                // центр зубцев
+      const edges = [-iw / 2];
+      slotX.forEach(function (x) { edges.push(x - t / 2); edges.push(x + t / 2); });
+      edges.push(iw / 2);
+      for (let k = 0; k < edges.length; k += 2) {
+        const w = edges[k + 1] - edges[k];
+        mover(box('rimB', w, T, d.slotD, c.ply, (edges[k] + edges[k + 1]) / 2, yb, zf), new V(0, -80, 0));
+      }
+    })();
+
+    // перегородки: пол ящиков на верхней плоскости нижнего борта
+    const yDrawTop = y0 + d.dh;
+    mover(box('shelfD', iw, t, id, c.ply, 0, yDrawTop + t / 2, T + id / 2), new V(0, 0, 40));
+    slotX.forEach(function (x) {
+      // ножка до низа основания, вырез сзади под хвост борта
+      const zc = T + id / 2;
+      mover(box('divD', t, rec, id, c.ply, x, rec / 2, zc), new V(0, 0, 55));
+      mover(box('divD', t, T, d.slotD, c.ply, x, rec + T / 2, T + d.slotD / 2), new V(0, 0, 55));
+      mover(box('divD', t, d.dh, id, c.ply, x, y0 + d.dh / 2, zc), new V(0, 0, 55));
+    });
+    const yU0 = yDrawTop + t;
+    mover(box('divC', t, d.uh, id, c.ply, -iw / 2 + p.lw + t / 2, yU0 + d.uh / 2, T + id / 2), new V(0, 0, 70));
+    mover(box('shelfL', p.lw, t, id, c.ply, -iw / 2 + p.lw / 2, y1 - p.topH - t / 2, T + id / 2), new V(0, 0, 85));
+
+    // войлок на основании
+    feltMesh = new THREE.Mesh(new THREE.PlaneGeometry(iw, d.ih), mat(c.felt));
+    feltMesh.position.set(0, H / 2, T + 0.15);
+    feltMesh.userData = { key: 'felt', mats: [feltMesh.material], edge: null };
+    root.add(feltMesh);
+    mover(feltMesh, new V(0, 0, -60));
+    meshes.push(feltMesh);
+
+    // ящики
+    for (let i = 0; i < p.n; i++) {
+      const cx = x0 + i * (d.dw + t) + d.dw / 2;
+      const g = new THREE.Group();
+      const zFront = d.rimH - p.ft;
+      const zc = zFront - p.boxD / 2;
+      g.position.set(cx, y0 + 1, zc);
+      root.add(g);
+      const bw = d.boxW, bd = p.boxD, bh = p.boxH, tb = p.tb, tw = p.tw;
+      box('dbottom', bw, tb, bd, c.ply, 0, tb / 2, 0, g);
+      [-1, 1].forEach(function (s) {
+        box('dside', tw, bh - tb, bd, c.ply, s * (bw / 2 - tw / 2), tb + (bh - tb) / 2, 0, g);
+      });
+      box('dback', bw - 2 * tw, bh - tb, tw, c.ply, 0, tb + (bh - tb) / 2, -bd / 2 + tw / 2, g);
+      box('dfront', bw - 2 * tw, bh - tb, tw, c.ply, 0, tb + (bh - tb) / 2, bd / 2 - tw / 2, g);
+      const fy = d.dh / 2 - 1;
+      const fz = (d.rimH - p.ft / 2) - zc;
+      box('facade', d.facW, d.facH, p.ft, c.ply, 0, fy, fz, g);
+      if (p.notchR > 0) {
+        const notch = new THREE.Mesh(
+          new THREE.CircleGeometry(p.notchR, 20, Math.PI, Math.PI),
+          new THREE.MeshBasicMaterial({ color: 0x000000 })
+        );
+        notch.position.set(0, fy + d.facH / 2 - 0.05, fz + p.ft / 2 + 0.1);
+        g.add(notch);
+      }
+      mover(g, new V(0, 0, 120), 'drawer');
+    }
+
+    const hy = [];
+    for (let i = 0; i < p.hn; i++) {
+      const m = Math.max(p.hl / 2 + 25, 40);
+      hy.push(p.hn === 1 ? H / 2 : m + i * (H - 2 * m) / (p.hn - 1));
+    }
+    const leaf = 1.6, half = p.hw / 2;
+
+    // откидная стенка и створка на каждой стороне
+    function makeSide(s) {
+      const wallG = new THREE.Group();
+      wallG.position.set(s * W / 2, 0, 0);
+      root.add(wallG);
+      // стенка стоит в локальных x∈[-T,0] для s=1, зеркально для s=-1
+      box('swall', T, H, Dd, c.ply, -s * T / 2, H / 2, Dd / 2, wallG);
+
+      // петли основание – стенка, ось в наружном углу (x = s*W/2, z = 0)
+      hy.forEach(function (y) {
+        // перо на спине основания (в плоскости z=0, не вращается)
+        const bl = box('hinge', half, p.hl, leaf, metal, -s * half / 2, y, -leaf / 2, root);
+        bl.position.x += s * W / 2;
+        // перо на наружной грани стенки
+        box('hinge', leaf, p.hl, half, metal, s * leaf / 2, y, half / 2, wallG);
+        cyl('hinge', 2.4, p.hl, metal, 0, y, 0, wallG);
+      });
+
+      // створка: ось в наружном переднем углу стенки
+      const wingG = new THREE.Group();
+      wingG.position.set(0, 0, Dd + T);
+      wallG.add(wingG);
+      box('wing', p.wing, H, T, [c.ply, c.ply, c.ply, c.ply, c.walnut, c.ply],
+        -s * p.wing / 2, H / 2, -T / 2, wingG);
+      hy.forEach(function (y) {
+        // перо на наружной грани стенки (продолжение через зазор)
+        box('hinge', leaf, p.hl, half + T, metal, s * leaf / 2, y, Dd + T - (half + T) / 2, wallG);
+        // перо на лицевой грани створки
+        box('hinge', half, p.hl, leaf, metal, -s * half / 2, y, leaf / 2, wingG);
+        cyl('hinge', 2.4, p.hl, metal, 0, y, 0, wingG);
+      });
+      mover(wingG, new V(0, 0, 60));
+      mover(wallG, new V(s * 150, 0, 0), 'wall');
+      wallG.userData.side = s; wingG.userData.side = s;
+      return { wall: wallG, wing: wingG };
+    }
+    sides = [makeSide(1), makeSide(-1)];
+
+    applyPose();
+    applyHighlight();
+    dirty = true;
+  }
+
+  function applyPose() {
+    if (!root) return;
+    const ex = pose.explode / 100;
+    const op = pose.open / 100;
+    movers.forEach(function (m) {
+      m.position.copy(m.userData.base).addScaledVector(m.userData.ex, ex);
+      if (m.userData.extra === 'drawer') m.position.z += op * (P ? P.boxD * 0.85 : 45);
+    });
+    // стенка: 90° стоит, 0° лежит в плоскости основания
+    const aw = (90 - pose.wall) * Math.PI / 180;
+    const a = pose.angle * Math.PI / 180;
+    sides.forEach(function (sd) {
+      const s = sd.wall.userData.side;
+      sd.wall.rotation.y = s * aw;
+      sd.wing.rotation.y = s * a;
+    });
+    if (feltMesh) feltMesh.visible = pose.felt;
+    dirty = true;
+  }
+
+  function applyHighlight() {
+    const accent = new THREE.Color(css('--accent'));
+    meshes.forEach(function (m) {
+      const on = !selKey || m.userData.key === selKey;
+      m.userData.mats.forEach(function (mm) {
+        mm.transparent = !on;
+        mm.opacity = on ? 1 : 0.18;
+        mm.depthWrite = on;
+        if (mm.emissive) mm.emissive.copy(on && selKey ? accent : new THREE.Color(0x000000));
+        if (mm.emissive) mm.emissiveIntensity = on && selKey ? 0.35 : 0;
+        mm.needsUpdate = true;
+      });
+      if (m.userData.edge) {
+        m.userData.edge.opacity = on ? (selKey ? 0.9 : 0.35) : 0.06;
+        if (on && selKey) m.userData.edge.color.copy(accent);
+        else m.userData.edge.color.set(css('--fg'));
+      }
+    });
+    dirty = true;
+  }
+
+  function setCamera() {
+    const s = Math.sin(view.phi), c = Math.cos(view.phi);
+    camera.position.set(
+      view.target.x + view.dist * s * Math.sin(view.theta),
+      view.target.y + view.dist * c,
+      view.target.z + view.dist * s * Math.cos(view.theta)
+    );
+    camera.lookAt(view.target);
+  }
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    dirty = true;
+  }
+
+  function init(canvasEl, stageEl, pickCb) {
+    canvas = canvasEl; stage = stageEl; onPick = pickCb;
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(32, 1, 20, 6000);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.85));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.75);
+    dl.position.set(-400, 900, 700);
+    scene.add(dl);
+    const dl2 = new THREE.DirectionalLight(0xffffff, 0.25);
+    dl2.position.set(600, 300, -500);
+    scene.add(dl2);
+
+    // вращение, масштаб, выбор детали
+    const ptrs = new Map();
+    let moved = 0, downT = 0, pinch = 0;
+    canvas.addEventListener('pointerdown', function (e) {
+      canvas.setPointerCapture(e.pointerId);
+      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      moved = 0; downT = performance.now();
+      if (ptrs.size === 2) { const a = Array.from(ptrs.values()); pinch = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      const p0 = ptrs.get(e.pointerId);
+      if (!p0) return;
+      const dx = e.clientX - p0.x, dy = e.clientY - p0.y;
+      p0.x = e.clientX; p0.y = e.clientY;
+      moved += Math.abs(dx) + Math.abs(dy);
+      if (ptrs.size === 1) {
+        view.theta -= dx * 0.006; view.phi -= dy * 0.006;
+        view.phi = Math.max(0.12, Math.min(Math.PI / 2 + 0.25, view.phi));
+        goal.theta = view.theta; goal.phi = view.phi;
+      } else if (ptrs.size === 2) {
+        const a = Array.from(ptrs.values());
+        const dd = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        if (pinch) { view.dist = Math.max(350, Math.min(2800, view.dist * pinch / dd)); goal.dist = view.dist; }
+        pinch = dd;
+      }
+      dirty = true;
+    });
+    function up(e) {
+      const had = ptrs.delete(e.pointerId);
+      if (had && e.type === 'pointerup' && moved < 6 && performance.now() - downT < 450 && ptrs.size === 0) pick(e);
+      if (ptrs.size < 2) pinch = 0;
+    }
+    canvas.addEventListener('pointerup', up);
+    canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      view.dist = Math.max(350, Math.min(2800, view.dist * Math.exp(e.deltaY * 0.001)));
+      goal.dist = view.dist; dirty = true;
+    }, { passive: false });
+
+    const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
+    function pick(e) {
+      const r = canvas.getBoundingClientRect();
+      v2.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(v2, camera);
+      const hits = ray.intersectObjects(meshes.filter(function (m) { return m.visible && m.userData.key !== 'felt'; }), false);
+      let h = null;
+      for (let i = 0; i < hits.length; i++) {
+        const mm = hits[i].object.userData.mats[0];
+        if (!mm.transparent) { h = hits[i]; break; }
+      }
+      onPick(h ? h.object.userData.key : null);
+    }
+
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+    window.addEventListener('resize', resize);
+    resize();
+
+    function loop() {
+      const k = 0.18;
+      ['theta', 'phi', 'dist'].forEach(function (n) {
+        const dv = goal[n] - view[n];
+        if (Math.abs(dv) > 0.0005) { view[n] += dv * k; dirty = true; }
+      });
+      if (dirty) { setCamera(); renderer.render(scene, camera); dirty = false; }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  }
+
+  return {
+    init: init,
+    build: build,
+    setPose: function (o) { Object.assign(pose, o); applyPose(); },
+    getPose: function () { return pose; },
+    select: function (k) { selKey = k; applyHighlight(); },
+    camPreset: function (name) {
+      if (name === 'front') { goal.theta = 0; goal.phi = Math.PI / 2; goal.dist = 1250; }
+      else if (name === 'top') { goal.theta = 0; goal.phi = 0.14; goal.dist = 1250; }
+      else if (name === 'back') { goal.theta = Math.PI - 0.5; goal.phi = 1.3; goal.dist = 1150; }
+      else { goal.theta = 0.55; goal.phi = 1.22; goal.dist = 1150; }
+      dirty = true;
+    },
+    refreshTheme: function () { if (P) { build(P, D); } },
+    // при полностью раскрытых створках модель шире, отодвигаем камеру
+    fit: function () {
+      const need = pose.wall < 45 ? 1900 : (pose.angle > 140 ? 1350 : 0);
+      if (need && goal.dist < need) goal.dist = need;
+      dirty = true;
+    }
+  };
+})();
+
+</script>
+<script>
+/* Интерфейс: вкладки, таблица деталей, раскрой, параметры. */
+(function () {
+  const Scene3D = window.Scene3D || { init: function () { throw new Error('модуль сцены не загрузился'); }, build: function () {}, setPose: function () {}, select: function () {}, camPreset: function () {}, fit: function () {}, refreshTheme: function () {} };
+  const $ = function (s) { return document.querySelector(s); };
+  const $$ = function (s) { return Array.from(document.querySelectorAll(s)); };
+  const S = { p: Object.assign({}, Model.DEFAULTS), sel: null };
+  let parts = [], d = null, packed = null;
+  const fmt = function (n) { return String(Math.round(n * 10) / 10).replace('.', ','); };
+
+  function toast(msg) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1900);
+  }
+
+  function dl(el, rows) {
+    el.innerHTML = rows.map(function (r) {
+      return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>';
+    }).join('');
+  }
+
+  function sizeText(x) { return fmt(x.w) + ' × ' + fmt(x.h); }
+
+  function renderFacts() {
+    const p = S.p;
+    dl($('#facts'), [
+      ['Закрыто', p.W + ' × ' + p.H + ' × ' + (p.D + p.T)],
+      ['Внутри', d.iw + ' × ' + d.ih + ' × ' + d.id],
+      ['Развёртка', d.unfolded + ' × ' + p.H]
+    ]);
+  }
+
+  function thicknesses() {
+    return Array.from(new Set(parts.filter(function (x) { return x.th > 0; }).map(function (x) { return x.th; }))).sort(function (a, b) { return b - a; });
+  }
+
+  function renderParts() {
+    let html = '<thead><tr><th>№</th><th>Деталь</th><th class="num">Размер</th><th class="num">Толщ.</th><th class="num">Шт.</th></tr></thead><tbody>';
+    let last = '';
+    parts.forEach(function (x) {
+      if (x.group !== last) { html += '<tr class="grp"><td colspan="5">' + x.group + '</td></tr>'; last = x.group; }
+      html += '<tr class="row' + (S.sel === x.key ? ' sel' : '') + '" data-key="' + x.key + '" tabindex="0">' +
+        '<td class="idx">' + x.n + '</td><td>' + x.name + '</td><td class="num">' + sizeText(x) +
+        '</td><td class="num">' + (x.th ? x.th : '—') + '</td><td class="num">' + x.qty + '</td></tr>';
+    });
+    html += '</tbody>';
+    $('#partsTable').innerHTML = html;
+    const rows = thicknesses().map(function (th) {
+      let area = 0, cnt = 0;
+      parts.forEach(function (x) { if (x.th === th) { area += x.area; cnt += x.qty; } });
+      return ['Фанера ' + th + ' мм', fmt(Math.round(area * 100) / 100) + ' м² · ' + cnt + ' дет.'];
+    });
+    const h = parts.filter(function (x) { return x.key === 'hinge'; })[0];
+    if (h) rows.push(['Петли', h.qty + ' шт. ' + h.w + ' × ' + h.h]);
+    dl($('#sums'), rows);
+  }
+
+  function renderPick() {
+    const el = $('#pick');
+    const x = parts.filter(function (q) { return q.key === S.sel; })[0];
+    if (!x) {
+      el.innerHTML = '<span class="empty">Нажмите на деталь в модели или в таблице, чтобы увидеть её размер.</span>';
+      return;
+    }
+    el.innerHTML = '<span class="nm">№ ' + x.n + ' · ' + x.name + '</span>' +
+      '<span class="mono">' + sizeText(x) + (x.th ? ' × ' + x.th : '') + ' мм</span>' +
+      '<span class="mono">' + x.qty + ' шт.</span>' +
+      '<button class="linkbtn" type="button" id="unsel">Снять выделение</button>' +
+      (x.note ? '<p>' + x.note + '</p>' : '');
+    $('#unsel').addEventListener('click', function () { select(null); });
+  }
+
+  function select(key) {
+    S.sel = (key === S.sel) ? null : key;
+    if (key && !parts.some(function (q) { return q.key === key; })) S.sel = null;
+    Scene3D.select(S.sel);
+    renderParts(); renderPick(); renderCut();
+  }
+
+  function renderCut() {
+    packed = Model.pack(parts, S.p);
+    const SW = S.p.sheetW, SH = S.p.sheetH;
+    let figs = '', warns = '', rows = [];
+    packed.forEach(function (g) {
+      const th = g.th;
+      const avg = g.sheets.length ? g.sheets.reduce(function (a, s) { return a + s.fill; }, 0) / g.sheets.length : 0;
+      rows.push(['Фанера ' + th + ' мм', g.sheets.length + ' л. · занято ' + Math.round(avg * 100) + '%']);
+      if (g.unplaced.length) {
+        warns += '<p class="warn">Фанера ' + th + ' мм, не помещаются на лист ' + SW + ' × ' + SH + ': ' +
+          Array.from(new Set(g.unplaced.map(function (u) { return '№' + u.n + ' ' + u.name; }))).join(', ') + '.</p>';
+      }
+      g.sheets.forEach(function (s, i) {
+        let svg = '<svg viewBox="0 0 ' + SW + ' ' + SH + '" role="img" aria-label="Лист ' + (i + 1) + ', фанера ' + th + ' мм">';
+        s.items.forEach(function (it) {
+          const big = (it.key === 'base' || it.key === 'wing' || it.key === 'swall' || it.key === 'cwall' || it.key === 'rimT' || it.key === 'rimB');
+          const fs = Math.max(8, Math.min(28, Math.min(it.w, it.h) * 0.5));
+          svg += '<rect class="p' + (big ? ' big' : '') + (S.sel === it.key ? ' hl' : '') + '" x="' + it.x + '" y="' + it.y +
+            '" width="' + it.w + '" height="' + it.h + '" vector-effect="non-scaling-stroke"><title>№' + it.n + ' ' + it.name + ' ' +
+            fmt(it.w) + ' × ' + fmt(it.h) + '</title></rect>' +
+            '<text x="' + (it.x + it.w / 2) + '" y="' + (it.y + it.h / 2) + '" font-size="' + fs +
+            '" text-anchor="middle" dominant-baseline="central">' + it.n + '</text>';
+        });
+        svg += '</svg>';
+        figs += '<figure class="sheet" style="margin:0">' + svg + '<figcaption>' + th + ' мм · лист ' + (i + 1) + ' из ' + g.sheets.length +
+          ' · занято ' + Math.round(s.fill * 100) + '%</figcaption></figure>';
+      });
+    });
+    dl($('#cutSums'), rows);
+    $('#cutOut').innerHTML = warns + '<div class="sheets">' + figs + '</div>';
+  }
+
+  const SLIDERS = [
+    ['lw', ' мм'], ['topH', ' мм'], ['recess', ' мм'], ['tail', ' мм'], ['boxH', ' мм'], ['boxD', ' мм'],
+    ['fg', ' мм'], ['notchR', ' мм'], ['sideClear', ' мм'], ['hw', ' мм'], ['hl', ' мм']
+  ];
+  const SEGS = [['segT', 'T'], ['segTc', 'Tc'], ['segt', 't'], ['segN', 'n'], ['segTb', 'tb'], ['segTw', 'tw'], ['segFt', 'ft'], ['segHn', 'hn']];
+
+  function renderParams() {
+    const p = S.p;
+    SEGS.forEach(function (a) {
+      $$('#' + a[0] + ' button').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.v === p[a[1]])); });
+    });
+    SLIDERS.forEach(function (a) {
+      const inp = $('#' + a[0]);
+      if (document.activeElement !== inp) inp.value = p[a[0]];
+      $('#' + a[0] + 'O').textContent = fmt(p[a[0]]) + a[1];
+    });
+    $('#boxD').max = Math.max(30, d.id - p.ft);
+    dl($('#derived'), [
+      ['Внутри', d.iw + ' × ' + d.ih + ' × ' + d.id],
+      ['Левая колонка', p.lw + ' × ' + d.uh],
+      ['Правая колонка', d.rw + ' × ' + d.uh],
+      ['Нижняя левая ячейка', p.lw + ' × ' + d.botH],
+      ['Проём ящика', d.dw + ' × ' + d.dh],
+      ['Короб ящика', d.boxW + ' × ' + p.boxD + ' × ' + p.boxH],
+      ['Фасад', fmt(d.facW) + ' × ' + fmt(d.facH)],
+      ['Борт верх и низ', d.iw + ' × ' + d.id],
+      ['Пол ящиков от низа', d.yIn0 + ' мм'],
+      ['Перегородка с ножкой', d.pH + ' × ' + d.id]
+    ]);
+    $('#warns').innerHTML = d.warn.map(function (w) { return '<p class="warn">' + w + '</p>'; }).join('');
+  }
+
+  function recompute() {
+    d = Model.derive(S.p);
+    parts = Model.buildParts(S.p);
+    if (S.sel && !parts.some(function (q) { return q.key === S.sel; })) S.sel = null;
+    renderFacts(); renderParts(); renderPick(); renderCut(); renderParams();
+    if (window.THREE && Scene3D.ready) { Scene3D.build(S.p, d); Scene3D.select(S.sel); }
+  }
+
+  // ---------- события ----------
+  $('#partsTable').addEventListener('click', function (e) {
+    const tr = e.target.closest('tr.row');
+    if (tr) select(tr.dataset.key);
+  });
+  $('#partsTable').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const tr = e.target.closest('tr.row');
+    if (tr) { e.preventDefault(); select(tr.dataset.key); }
+  });
+
+  $$('#tabs .tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      $$('#tabs .tab').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+      ['parts', 'cut', 'params', 'ask'].forEach(function (n) { $('#p-' + n).hidden = (n !== b.dataset.tab); });
+    });
+  });
+
+  function bindRange(id, outId, fn, unit) {
+    const el = $(id), o = $(outId);
+    const upd = function () { o.textContent = el.value + unit; fn(+el.value); };
+    el.addEventListener('input', upd);
+    o.textContent = el.value + unit;
+  }
+  bindRange('#wall', '#wallO', function (v) { Scene3D.setPose({ wall: v }); Scene3D.fit(); }, '°');
+  bindRange('#angle', '#angleO', function (v) { Scene3D.setPose({ angle: v }); Scene3D.fit(); }, '°');
+  bindRange('#explode', '#explodeO', function (v) { Scene3D.setPose({ explode: v }); }, '%');
+  bindRange('#open', '#openO', function (v) { Scene3D.setPose({ open: v }); }, '%');
+
+  let tween = 0;
+  function animatePose(target) {
+    const ew = $('#wall'), ea = $('#angle');
+    const w0 = +ew.value, a0 = +ea.value, t0 = performance.now(), dur = 500;
+    cancelAnimationFrame(tween);
+    (function step(now) {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      const w = Math.round(w0 + (target.wall - w0) * e), a = Math.round(a0 + (target.angle - a0) * e);
+      ew.value = w; ea.value = a;
+      $('#wallO').textContent = w + '°'; $('#angleO').textContent = a + '°';
+      Scene3D.setPose({ wall: w, angle: a });
+      if (k < 1) tween = requestAnimationFrame(step); else Scene3D.fit();
+    })(t0);
+  }
+  const POSES = { closed: { wall: 90, angle: 0 }, screen: { wall: 90, angle: 110 }, flat: { wall: 0, angle: 90 } };
+  $$('[data-pose]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      animatePose(POSES[b.dataset.pose]);
+      Scene3D.camPreset(b.dataset.pose === 'flat' ? 'top' : 'iso');
+    });
+  });
+  $$('[data-cam]').forEach(function (b) { b.addEventListener('click', function () { Scene3D.camPreset(b.dataset.cam); }); });
+  $('#feltBtn').addEventListener('click', function () {
+    const on = this.getAttribute('aria-pressed') !== 'true';
+    this.setAttribute('aria-pressed', String(on));
+    Scene3D.setPose({ felt: on });
+  });
+
+  SEGS.forEach(function (a) {
+    $$('#' + a[0] + ' button').forEach(function (b) {
+      b.addEventListener('click', function () { S.p[a[1]] = +b.dataset.v; recompute(); });
+    });
+  });
+  SLIDERS.forEach(function (a) {
+    $('#' + a[0]).addEventListener('input', function () { S.p[a[0]] = +this.value; recompute(); });
+  });
+  $('#resetBtn').addEventListener('click', function () {
+    const keep = { sheetW: S.p.sheetW, sheetH: S.p.sheetH, gap: S.p.gap };
+    S.p = Object.assign({}, Model.DEFAULTS, keep);
+    recompute();
+  });
+
+  // раскрой
+  function syncSheet() {
+    $('#sheetW').value = S.p.sheetW; $('#sheetH').value = S.p.sheetH; $('#gapIn').value = S.p.gap;
+    const key = S.p.sheetW + 'x' + S.p.sheetH;
+    const has = Array.from($('#sheetPreset').options).some(function (o) { return o.value === key; });
+    $('#sheetPreset').value = has ? key : 'custom';
+  }
+  $('#sheetPreset').addEventListener('change', function () {
+    if (this.value === 'custom') return;
+    const a = this.value.split('x');
+    S.p.sheetW = +a[0]; S.p.sheetH = +a[1];
+    syncSheet(); renderCut();
+  });
+  ['sheetW', 'sheetH', 'gapIn'].forEach(function (id) {
+    $('#' + id).addEventListener('change', function () {
+      const v = Math.max(+this.min, Math.min(+this.max, +this.value || +this.min));
+      if (id === 'sheetW') S.p.sheetW = v; else if (id === 'sheetH') S.p.sheetH = v; else S.p.gap = v;
+      syncSheet(); renderCut();
+    });
+  });
+
+  $('#copyBtn').addEventListener('click', function () {
+    const txt = parts.map(function (x) {
+      return x.n + '. ' + x.name + ': ' + sizeText(x) + (x.th ? ' × ' + x.th : '') + ' мм, ' + x.qty + ' шт.';
+    }).join('\n');
+    const ta = $('#copyOut');
+    function fallback() { ta.hidden = false; ta.value = txt; ta.focus(); ta.select(); toast('Выделите текст и скопируйте'); }
+    try {
+      navigator.clipboard.writeText(txt).then(function () { toast('Список скопирован'); }, fallback);
+    } catch (e) { fallback(); }
+  });
+
+  // ---------- запуск ----------
+  syncSheet();
+  try {
+    if (!window.THREE) throw new Error('three.js не загрузился');
+    Scene3D.init($('#cv'), $('#stage'), function (key) { if (key) select(key); else if (S.sel) select(S.sel); });
+    Scene3D.ready = true;
+  } catch (err) {
+    $('#stage').insertAdjacentHTML('beforeend',
+      '<p class="warn" style="position:absolute;inset:auto 12px 90px 12px;background:var(--surface)">Не удалось запустить 3D: ' + err.message + '. Таблицы и раскрой работают.</p>');
+  }
+  recompute();
+
+  try {
+    const re = function () { setTimeout(function () { if (Scene3D.ready) Scene3D.refreshTheme(); }, 60); };
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', re);
+    new MutationObserver(re).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  } catch (e) { /* без смены темы на лету */ }
+})();
+
+</script>
+
+</body></html>
